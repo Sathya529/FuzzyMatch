@@ -1,0 +1,39 @@
+import pandas as pd
+from rapidfuzz import process, fuzz
+
+# Load the Excel file
+file_path = 'excel.xlsx'  # Replace with your actual file path
+df_transaction = pd.read_excel(file_path, sheet_name='Transaction Dataset')
+df_master = pd.read_excel(file_path, sheet_name='Master Dataset')
+
+# Extract customer names
+transaction_names = df_transaction.iloc[:, 0].tolist()
+master_names = df_master.iloc[:, 0].tolist()
+
+# Function to get top 5 matches with scores as percentages
+def get_top_matches(customer_name, master_names, n=5):
+    matches = process.extract(customer_name, master_names, scorer=fuzz.ratio, limit=n)
+    matches_percentage = [(match[0], f"{match[1]}%") for match in matches]
+    return matches_percentage
+
+# Create a DataFrame to store results
+results = []
+for customer in transaction_names:
+    top_matches = get_top_matches(customer, master_names)
+    results.append({
+        'Transaction Customer': customer,
+        'Matched Customer': top_matches[0][0],
+        'Match Score': top_matches[0][1]
+    })
+    for match in top_matches[1:]:
+        results.append({
+            'Transaction Customer': '',
+            'Matched Customer': match[0],
+            'Match Score': match[1]
+        })
+
+# Convert results to DataFrame and save to Excel
+results_df = pd.DataFrame(results)
+results_df.to_excel('customer_matching_results.xlsx', index=False)
+
+print("Matching complete! Results saved to 'customer_matching_results.xlsx'")
